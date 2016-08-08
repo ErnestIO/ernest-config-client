@@ -20,25 +20,25 @@ import (
 var err error
 var cfg map[string]interface{}
 
-type config struct {
+type Config struct {
 	uri      string
 	nats     *nats.Conn
 	postgres *gorm.DB
 	redis    *redis.Client
 }
 
-func NewConfig(natsURI string) config {
-	c := config{uri: natsURI}
+func NewConfig(natsURI string) *Config {
+	c := Config{uri: natsURI}
 	c.setup()
 
-	return c
+	return &c
 }
 
-func (c *config) setup() {
+func (c *Config) setup() {
 	c.Nats()
 }
 
-func (c *config) Nats() *nats.Conn {
+func (c *Config) Nats() *nats.Conn {
 	if c.nats != nil {
 		return c.nats
 	}
@@ -48,13 +48,16 @@ func (c *config) Nats() *nats.Conn {
 		if err != nil {
 			log.Println("Waiting for nats on " + c.uri + ". Retrying in 2 seconds ...")
 			time.Sleep(time.Second * 2)
+			continue
 		}
+		log.Println("Successfully connected to nats on '" + c.uri + "'")
 	}
 	return c.nats
 }
 
-func (c *config) Postgres(table string) *gorm.DB {
+func (c *Config) Postgres(table string) *gorm.DB {
 	var resp *nats.Msg
+	var pgCfg map[string]interface{}
 
 	for c.postgres == nil {
 		resp, err = c.nats.Request("config.get.postgres", nil, time.Second)
@@ -64,26 +67,27 @@ func (c *config) Postgres(table string) *gorm.DB {
 			continue
 		}
 
-		err = json.Unmarshal(resp.Data, &cfg)
+		err = json.Unmarshal(resp.Data, &pgCfg)
 		if err != nil {
 			log.Println("Invalid config.get.postgres response, received '" + string(resp.Data) + "'. Retrying in 5 seconds ...")
 			time.Sleep(time.Second * 5)
 			continue
 		}
 
-		uri := fmt.Sprintf("%s/%s?sslmode=disable", cfg["url"], table)
+		uri := fmt.Sprintf("%s/%s?sslmode=disable", pgCfg["url"], table)
 		c.postgres, err = gorm.Open("postgres", uri)
 		if err != nil {
-			log.Println("Unsuccesful connection to postgres ''. Retrying in 10 seconds ...")
+			log.Println("Unsuccesful connection to postgres '" + uri + "'. Retrying in 10 seconds ...")
 			time.Sleep(time.Second * 10)
 			continue
 		}
+		log.Println("Successfully connected to postgres on '" + uri + "'")
 	}
 
 	return c.postgres
 }
 
-func (c *config) Redis() *redis.Client {
+func (c *Config) Redis() *redis.Client {
 	if c.redis != nil {
 		return c.redis
 	}
@@ -121,6 +125,7 @@ func (c *config) Redis() *redis.Client {
 			time.Sleep(time.Second * 5)
 			continue
 		}
+		log.Println("Successfully connected to redis on '" + redisCfg.Addr + "'")
 		c.redis = redis
 	}
 
