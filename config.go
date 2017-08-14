@@ -131,3 +131,18 @@ func (c *Config) Redis() *redis.Client {
 
 	return c.redis
 }
+
+func (c *Config) GetConfig(ctype string, result interface{}) error {
+	var msg *nats.Msg
+
+	for msg == nil {
+		msg, err = c.nats.Request("config.get."+ctype, nil, time.Second)
+		if err != nil {
+			log.Printf("Waiting for config.get.%s response. Retrying in 5 seconds ...", ctype)
+			time.Sleep(time.Second * 5)
+			continue
+		}
+	}
+
+	return json.Unmarshal(msg.Data, result)
+}
