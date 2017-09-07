@@ -78,8 +78,10 @@ func (c *Config) Postgres(table string) *gorm.DB {
 		c.postgres, err = gorm.Open("postgres", uri)
 		if err != nil {
 			log.Println("Unsuccesful connection to postgres '" + uri + "'. Retrying in 10 seconds ...")
-			time.Sleep(time.Second * 10)
+			time.Sleep(time.Second * 30)
 			continue
+		} else {
+			time.Sleep(time.Second * 30)
 		}
 		log.Println("Successfully connected to postgres on '" + uri + "'")
 	}
