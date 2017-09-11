@@ -77,11 +77,10 @@ func (c *Config) Postgres(table string) *gorm.DB {
 		uri := fmt.Sprintf("%s/%s?sslmode=disable", pgCfg["url"], table)
 		c.postgres, err = gorm.Open("postgres", uri)
 		if err != nil {
-			log.Println("Unsuccesful connection to postgres '" + uri + "'. Retrying in 30 seconds ...")
-			time.Sleep(time.Second * 30)
+			log.Println("Unsuccesful connection to postgres '" + uri + "'. Retrying in 10 seconds ...")
+			time.Sleep(time.Second * 10)
+			c.postgres = nil
 			continue
-		} else {
-			time.Sleep(time.Second * 30)
 		}
 		log.Println("Successfully connected to postgres on '" + uri + "'")
 	}
