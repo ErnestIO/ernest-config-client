@@ -12,6 +12,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/nats-io/nats"
+	"github.com/r3labs/akira"
 	"gopkg.in/redis.v3"
 
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -22,7 +23,7 @@ var cfg map[string]interface{}
 
 type Config struct {
 	uri      string
-	nats     *nats.Conn
+	nats     akira.Connector
 	postgres *gorm.DB
 	redis    *redis.Client
 }
@@ -38,9 +39,13 @@ func (c *Config) setup() {
 	c.Nats()
 }
 
+func (c *Config) SetConnector(conn akira.Connector) {
+	c.nats = conn
+}
+
 func (c *Config) Nats() *nats.Conn {
 	if c.nats != nil {
-		return c.nats
+		return c.nats.(*nats.Conn)
 	}
 
 	for c.nats == nil {
@@ -52,7 +57,7 @@ func (c *Config) Nats() *nats.Conn {
 		}
 		log.Println("Successfully connected to nats on '" + c.uri + "'")
 	}
-	return c.nats
+	return c.nats.(*nats.Conn)
 }
 
 func (c *Config) Postgres(table string) *gorm.DB {
