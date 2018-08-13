@@ -48,7 +48,7 @@ func (c *Config) Nats() *nats.Conn {
 		return c.nats.(*nats.Conn)
 	}
 
-	for c.nats == nil {
+	for {
 		c.nats, err = nats.Connect(c.uri)
 		if err != nil {
 			log.Println("Waiting for nats on " + c.uri + ". Retrying in 2 seconds ...")
@@ -56,7 +56,9 @@ func (c *Config) Nats() *nats.Conn {
 			continue
 		}
 		log.Println("Successfully connected to nats on '" + c.uri + "'")
+		break
 	}
+
 	return c.nats.(*nats.Conn)
 }
 
